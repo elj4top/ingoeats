@@ -46,9 +46,9 @@ class OrderItemCreate(BaseModel):
     quantity: int
 
 class OrderCreate(BaseModel):
-    customer_id: int               
-    delivery_address: str          
-    items: List[OrderItemCreate]   
+    delivery_address: str          # e.g., "MMUST Hostel 3, Room 12"
+    items: List[OrderItemCreate]   # List of products in the shopping cart
+ 
 
 # --- AUTHENTICATION SCHEMAS ---
 class UserSignup(BaseModel):

@@ -2,25 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
+from app.api.auth import get_current_user # Injects token verification lock!
 
 router = APIRouter(prefix="/api/orders", tags=["Orders & Checkout"])
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def checkout_cart(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
+def checkout_cart(
+    order_data: schemas.OrderCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user) 
+):
     """
-    Process cart checkout: calculates prices, aggregates food + liquor items, 
-    appends platform fees, and initiates an unpaid base order.
+    Process cart checkout for LOGGED-IN users only.
+    Calculates marketplace math and initiates an unpaid base order.
     """
-    customer = db.query(models.User).filter(models.User.id == order_data.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer user ID not found")
-
     if not order_data.items:
         raise HTTPException(status_code=400, detail="Cart cannot be empty")
 
     running_subtotal = 0.0
     items_to_save = []
 
+    # Iterate through items to verify existence and calculate prices dynamically
     for item in order_data.items:
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not product:
@@ -32,6 +34,7 @@ def checkout_cart(order_data: schemas.OrderCreate, db: Session = Depends(get_db)
         item_cost = product.price * item.quantity
         running_subtotal += item_cost
 
+        # Queue the data entry for the OrderItem table
         order_item = models.OrderItem(
             product_id=product.id,
             quantity=item.quantity,
@@ -39,12 +42,14 @@ def checkout_cart(order_data: schemas.OrderCreate, db: Session = Depends(get_db)
         )
         items_to_save.append(order_item)
 
+    # Logistical calculations
     service_fee = 30.0   
     delivery_fee = 100.0 
     final_total = running_subtotal + service_fee + delivery_fee
 
+    # Generate the base unpaid order row entry linked to the secure token user id
     db_order = models.Order(
-        customer_id=order_data.customer_id,
+        customer_id=current_user.id, 
         subtotal=running_subtotal,
         delivery_fee=delivery_fee,
         service_fee=service_fee,
@@ -57,6 +62,7 @@ def checkout_cart(order_data: schemas.OrderCreate, db: Session = Depends(get_db)
     db.commit() 
     db.refresh(db_order)
 
+    # Connect the individual products to the generated order ID
     for order_item in items_to_save:
         order_item.order_id = db_order.id
         db.add(order_item)
@@ -65,6 +71,7 @@ def checkout_cart(order_data: schemas.OrderCreate, db: Session = Depends(get_db)
 
     return {
         "status": "success",
+        "message": f"Order created successfully for {current_user.full_name}. Ready for payment routing.",
         "order_id": db_order.id,
         "total_payable_ksh": db_order.total_amount
     }

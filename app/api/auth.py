@@ -62,3 +62,35 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "token_type": "bearer",
         "role": user.role
     }
+
+
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from app.services import auth_utils
+
+# Tells FastAPI to look for the token in the 'Authorization: Bearer <TOKEN>' header
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.User:
+    """
+    Dependency that decodes the JWT token, verifies the user, 
+    and injects the logged-in user profile object directly into any protected route.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials. Please log in.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, auth_utils.SECRET_KEY, algorithms=[auth_utils.ALGORITHM])
+        phone_number: str = payload.get("sub")
+        if phone_number is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    user = db.query(models.User).filter(models.User.phone_number == phone_number).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
