@@ -60,3 +60,15 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     role: str
+
+# --- DELIVERY SCHEMAS ---
+class DeliveryOrderResponse(BaseModel):
+    id: int
+    subtotal: float
+    delivery_fee: float
+    total_amount: float
+    status: str
+    delivery_address: str
+
+    class Config:
+        from_attributes = True

@@ -1,14 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.api import mpesa, restaurants, orders # 1. Added orders here
-from app.api import mpesa, restaurants, orders, auth 
+from app.api import mpesa, restaurants, orders, auth, delivery 
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="IngoEats API",
-    description="Backend marketplace engine for Kakamega food, liquor, and last-mile Boda logistics.",
+    description="Backend engine for Kakamega food, liquor, and Boda logistics.",
     version="1.0.0"
 )
 
@@ -21,13 +20,11 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(mpesa.router)
-app.include_router(restaurants.router)
-app.include_router(orders.router) 
 app.include_router(auth.router)
 app.include_router(mpesa.router)
 app.include_router(restaurants.router)
 app.include_router(orders.router)
+app.include_router(delivery.router) 
 
 @app.get("/")
 def home():
