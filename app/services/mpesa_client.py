@@ -1,8 +1,5 @@
-"""It establishes an interface with Safaricom's Daraja gateway.
- It auto-generates the required base64 authentication tokens, 
- securely pieces together the transaction passwords using timestamps,
-and converts customer numbers into standard Kenyan country code formats (254XXXXXXXXX)
- before triggering an STK Push."""
+"""this service handles communication with safaricom's  Daraja API
+ to trigger  automated  MPESA STK Pushes directly to the customers' phones"""
 
 import os
 import base64
@@ -19,9 +16,12 @@ class MpesaClient:
         self.shortcode = os.getenv("MPESA_SHORTCODE")
         self.passkey = os.getenv("MPESA_PASSKEY")
         self.callback_url = os.getenv("MPRESA_CALLBACK_URL")
+        
+        # Daraja Sandbox Base URL (Change to production URL when going live)
         self.base_url = "https://safaricom.co.ke"
 
     def get_access_token(self) -> str:
+        """Fetches the OAuth access token from Safaricom."""
         url = f"{self.base_url}/oauth/v1/generate?grant_type=client_credentials"
         credentials = f"{self.consumer_key}:{self.consumer_secret}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
@@ -34,17 +34,20 @@ class MpesaClient:
         raise Exception(f"Failed to fetch M-Pesa token: {response.text}")
 
     def generate_password(self, timestamp: str) -> str:
+        """Generates an encrypted password payload required for STK Push."""
         data_to_encode = f"{self.shortcode}{self.passkey}{timestamp}"
         return base64.b64encode(data_to_encode.encode()).decode()
 
     def initiate_stk_push(self, phone_number: str, amount: int, account_reference: str) -> dict:
+        """Triggers an M-Pesa STK Push popup on the customer's phone."""
         access_token = self.get_access_token()
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         password = self.generate_password(timestamp)
         
         url = f"{self.base_url}/mpesa/stkpush/v1/processrequest"
-        headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+        headers = {"Authorization": f"BaseBear {access_token}", "Content-Type": "application/json"}
         
+        # Enforce exact Kenyan format: 2547XXXXXXXX or 2541XXXXXXXX
         if phone_number.startswith("0"):
             phone_number = "254" + phone_number[1:]
         elif phone_number.startswith("+"):

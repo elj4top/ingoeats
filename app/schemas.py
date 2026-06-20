@@ -49,3 +49,14 @@ class OrderCreate(BaseModel):
     customer_id: int               
     delivery_address: str          
     items: List[OrderItemCreate]   
+
+# --- AUTHENTICATION SCHEMAS ---
+class UserSignup(BaseModel):
+    full_name: str
+    phone_number: str  # Format: 2547XXXXXXXX
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    role: str

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.api import mpesa, restaurants, orders # 1. Added orders here
+from app.api import mpesa, restaurants, orders, auth 
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,7 +23,11 @@ app.add_middleware(
 # Include Routers
 app.include_router(mpesa.router)
 app.include_router(restaurants.router)
-app.include_router(orders.router) # 2. Added order routing block here
+app.include_router(orders.router) 
+app.include_router(auth.router)
+app.include_router(mpesa.router)
+app.include_router(restaurants.router)
+app.include_router(orders.router)
 
 @app.get("/")
 def home():

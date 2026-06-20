@@ -1,7 +1,7 @@
-"""This is the skeletal frame of your business logic.
-By separating financial columns (subtotal, delivery_fee, and service_fee)
-inside the Order table, your system can automatically calculate exactly
-what to payout to your merchants and Boda-Boda riders at the end of the day."""
+""" this is the skeleton of the entire marketplace business logic
+.It defines how users,merchants(restaurants/liqour stores),products and orders
+interact.
+"""
 
 import enum
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, Table
@@ -71,7 +71,7 @@ class Order(Base):
     customer_id = Column(Integer, ForeignKey("users.id"))
     rider_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Assigned later via logistics
     
-    # Financial breakdowns for your marketplace math
+    # Financial breakdowns for the marketplace math
     subtotal = Column(Float, nullable=False)                   # Raw food + alcohol cost
     delivery_fee = Column(Float, nullable=False)               # Goes mostly to rider
     service_fee = Column(Float, default=30.0)                  # Fixed platform fee
