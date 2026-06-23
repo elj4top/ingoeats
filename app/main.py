@@ -1,34 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
-from app.api import mpesa, restaurants, orders # 1. Added orders here
 
+from app.core.config import settings
+from app.db.base import Base
+from app.db.database import engine
+from app.api.v1.api import api_router
+
+# Creates tables on startup if they don't exist yet.
+# Swap for Alembic migrations once this goes to production.
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="IngoEats API",
-    description="Backend marketplace engine for Kakamega food, liquor, and last-mile Boda logistics.",
-    version="1.0.0"
-)
+app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include Routers
-app.include_router(mpesa.router)
-app.include_router(restaurants.router)
-app.include_router(orders.router) # 2. Added order routing block here
+app.include_router(api_router)
+
 
 @app.get("/")
-def home():
-    return {"status": "online", "marketplace": "IngoEats Kakamega"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
-
+def root():
+    return {"message": f"{settings.PROJECT_NAME} is running"}
